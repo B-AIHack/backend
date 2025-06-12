@@ -1,0 +1,190 @@
+import org.springframework.boot.gradle.plugin.SpringBootPlugin
+
+plugins {
+    id 'java'
+    id 'jacoco'
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.sonarqube)
+    alias(libs.plugins.test.logger)
+    alias(libs.plugins.jib)
+}
+
+apply plugin: 'java'
+apply plugin: 'jacoco'
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'maven-publish'
+
+java {
+    group = 'kz.berekebank'
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+ext {
+    nexus = [
+      snapshots: 'https://nexus.sberbank.kz/repository/maven-snapshots',
+      releases: 'https://nexus.sberbank.kz/repository/maven-releases',
+      user: System.getenv("NEXUS_CREDS_USR") ?: 'user',
+      pass: System.getenv("NEXUS_CREDS_PSW") ?: 'pass',
+    ]
+    imageTag = System.getenv("IMAGE_TAG") ?: 'latest'
+    springDoc='2.1.0'
+    springCloudVersion = '2022.0.4'
+}
+ext['postgresql.version'] = libs.versions.postgresql.get()
+ext['snakeyaml.version'] = libs.versions.snakeyaml.get()
+
+repositories {
+    mavenLocal()
+    maven {
+        url "https://nexus.sberbank.kz/repository/maven-public"
+        credentials {
+            username = nexus.user
+            password = nexus.pass
+        }
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+dependencies {
+
+    implementation(platform(libs.spring.cloud.dependecies))
+    implementation(platform(SpringBootPlugin.BOM_COORDINATES))
+
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.cloud:spring-cloud-starter-vault-config'
+
+    implementation 'org.liquibase:liquibase-core'
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+
+    implementation(libs.bbusiness.security.starter)
+    implementation(libs.commons.io)
+
+    implementation(libs.spring.kafka)
+    implementation(libs.kafka.clients)
+
+    implementation(libs.logger.decorator)
+    implementation(libs.springdoc.starter)
+
+    compileOnly(libs.guava)
+
+    compileOnly 'org.projectlombok:lombok'
+    runtimeOnly 'org.postgresql:postgresql'
+
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+
+    testImplementation(libs.embedded.database.test)
+    testImplementation(libs.easy.random)
+
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
+    testCompileOnly 'org.projectlombok:lombok'
+
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.incremental(false)
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    jacoco {
+        destinationFile = layout.buildDirectory.file("jacoco/jacocoTest.exec").get().getAsFile()
+    }
+    finalizedBy jacocoTestReport
+}
+
+tasks.withType(JacocoReport).configureEach {
+    dependsOn test
+
+    reports {
+        csv.required.set(true)
+        xml.required.set(true)
+        xml.outputLocation = layout.buildDirectory.file("jacoco/jacoco.xml")
+        html.outputLocation = layout.buildDirectory.dir("jacoco/jacocoHtml")
+    }
+}
+
+sonar {
+    properties {
+        property 'sonar.sources', 'src/main/java'
+        property 'sonar.binaries', locationPath(layout.buildDirectory)
+        property 'sonar.java.binaries', locationPath(layout.buildDirectory)
+        property 'sonar.coverage.exclusions', '**/dto/**,**/enums/**,**/entity/**'
+    }
+}
+
+sonar {
+    properties {
+        property 'sonar.projectKey', 'bereke-deepmind-backend'
+        property 'sonar.projectName', 'bereke-deepmind-backend'
+        property 'sonar.sources', 'src/main/java'
+        property 'sonar.binaries', locationPath(layout.buildDirectory)
+        property 'sonar.java.binaries', locationPath(layout.buildDirectory)
+        property 'sonar.coverage.jacoco.xmlReportPaths', locationPath(rootProject.layout.buildDirectory.file("jacoco/jacoco.xml"))
+        property 'sonar.coverage.exclusions', '**/dto/**,**/enums/**,**/entity/**'
+    }
+}
+
+static String locationPath(Provider<FileSystemLocation> provider) {
+    return provider.get().getAsFile().getPath()
+}
+
+jib {
+    from {
+        image = 'nexus.sberbank.kz/repository/docker-gateway/bank/eclipse-temurin:21.0.4_7-jre-alpine'
+    }
+    to {
+        image = "nexus.sberbank.kz:5002/b-business/bereke-deepmind-backend:qEkXyECw"
+        auth {
+            username = project.findProperty('nexusUser') ?: 'robot' as Property<String>
+            password = project.findProperty('nexusPassword') ?: 'Sber-2024+' as Property<String>
+        }
+    }
+    container {
+        jvmFlags = [ '-XX:+UseContainerSupport',
+                     '-XX:InitialRAMPercentage=70.0',
+                     '-XX:MaxRAMPercentage=70.0',
+                     '-XX:+HeapDumpOnOutOfMemoryError',
+                     '-XX:HeapDumpPath=/tmp/dump']
+    }
+    allowInsecureRegistries = true
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.incremental(false)
+}
+
+publishing {
+
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            artifactId 'bereke-deepmind-backend-facade'
+        }
+    }
+
+    repositories {
+        maven {
+            url = nexus.snapshots
+
+            credentials {
+                username = project.findProperty('nexusUser') ?: 'robot' as Property<String>
+                password = project.findProperty('nexusPassword') ?: 'Sber-2024+' as Property<String>
+            }
+        }
+    }
+}

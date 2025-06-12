@@ -1,0 +1,21 @@
+release:
+  chart: nexus/sberbusiness-service
+  version: 0.0.9
+app:
+  tz: Asia/Almaty
+  name:
+    controller: mb-template-controller
+  contextPath: mb-template
+  ports:
+    container: 8080
+    management: 8091
+  service:
+    container: 8080
+    management: 8091
+  db:
+    pool_size: 10
+  ingress:
+    cors:
+      enabled: true
+  replicas:
+    controller: 1

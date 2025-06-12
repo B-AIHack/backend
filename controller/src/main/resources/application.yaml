@@ -1,0 +1,111 @@
+server:
+  max-http-request-header-size: 1MB
+  port: ${SERVER_PORT:8090}
+  servlet:
+    context-path: ${CONTEXT_PATH:/bereke-deepmind-backend}
+
+management:
+  server:
+    port: ${MANAGEMENT_SERVER_PORT:8091}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+spring:
+  config:
+    import: optional:vault://
+    activate:
+      on-profile: default
+  cloud:
+    vault:
+      token: ${VAULT_TOKEN:00000000-0000-0000-0000-000000000000}
+      uri: ${VAULT_URI:https://vault-test.berekebank.kz/}
+      application-name: ${VAULT_APP:bereke-deepmind-backend}
+      enabled: ${VAULT_ENABLED:false}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          public-key-location: ${PUBLIC_KEY_LOCATION:classpath:public_key}
+  application:
+    name: filestorage
+  jackson:
+    serialization:
+      indent_output: true
+      write_dates_as_timestamps: true
+  messages:
+    basename: localization/messages
+  datasource:
+    driver-class-name: ${DRIVER_CLASS_NAME:org.postgresql.Driver}
+    url: ${DATASOURCE_URL:jdbc:postgresql://localhost:5432/bereke_deepmind}
+    username: ${DATASOURCE_USER:bereke_deepmind}
+    password: ${DATASOURCE_PASSWORD:bereke_deepmind}
+    tomcat:
+      max-active: ${DATASOURCE_MAXIMUM_POOL_SIZE:10}
+      log-abandoned: ${DATASOURCE_LOG_ABANDONED:true}
+      remove-abandoned: ${DATASOURCE_REMOVE_ABANDONED:true}
+      remove-abandoned-timeout: ${DATASOURCE_REMOVE_ABANDONED_TIMEOUT:300} #In seconds
+  jpa:
+    properties:
+      dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hibernate.:
+        show_sql: ${JPA_SHOW_SQL:false}
+        use_sql_comments: ${JPA_USE_SQL_COMMENTS:false}
+        format_sql: ${JPA_FORMAT_SQL:false}
+        generate_statistics: false
+        ddl-auto: none
+        dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+        query:
+          startup_check: false
+        validator:
+          apply_to_ddl: false
+          autoregister_listeners: false
+        order_inserts: true
+        batch_versioned_data: true
+        jdbc:
+          batch_size: ${JPA_BATCH_SIZE:100}
+      javax:
+        persistence:
+          validation:
+            mode: none
+  servlet:
+    multipart:
+      maxFileSize: ${MAX_FILE_SIZE:10MB}
+      maxRequestSize: ${MAX_REQUEST_SIZE:100MB}
+  liquibase:
+    enabled: ${LIQUIBASE_ENABLED:true}
+    change-log: db/changelog/db.changelog-master.xml
+
+logging:
+  config: classpath:logback.xml
+  level:
+    root: ${LOG_LEVEL:info}
+    kz.berekebank.bereke_deepmind.controller.ApiExceptionHandler: ${EXCEPTION_HANDLER_LOGGING_LEVEL:INFO}
+
+logger:
+  decorator:
+    type: ${LOG_TYPE:console}
+
+security:
+  oauth2:
+    client:
+      enabled: false
+      url: ${OAUTH2_API_HOST:http://authentication:5000/auth/oauth/token}
+      grantType: ${OAUTH2_API_GRANT_TYPE:Password}
+      userType: ${OAUTH2_API_USER_TYPE:manager}
+      username: ${OAUTH2_API_USERNAME:value}
+      password: ${OAUTH2_API_PASSWORD:value}
+  config:
+    default-secured: false
+    enabled: true
+    endpoints:
+      unauthorized: []
+      authorized:
+        - /api/v1/test/private
+
+integration:
+  host: ${POSTMAN_ECHO_URL:https://postman-echo.com}

@@ -1,0 +1,40 @@
+zonky:
+  test:
+    database:
+      postgres:
+        docker:
+          image: nexus.sberbank.kz/repository/docker-gateway/library/postgres
+spring:
+  datasource:
+    driver-class-name: ${DRIVER_CLASS_NAME:org.postgresql.Driver}
+    url: ${DATASOURCE_URL:jdbc:postgresql://localhost:5432/filestorage}
+    username: ${DATASOURCE_USER:filestorage}
+    password: ${DATASOURCE_PASSWORD:filestorage}
+    tomcat:
+      max-active: ${DATASOURCE_MAXIMUM_POOL_SIZE:10}
+      log-abandoned: ${DATASOURCE_LOG_ABANDONED:true}
+      remove-abandoned: ${DATASOURCE_REMOVE_ABANDONED:true}
+      remove-abandoned-timeout: ${DATASOURCE_REMOVE_ABANDONED_TIMEOUT:300} #In seconds
+  cloud:
+    vault:
+      enabled: false
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          public-key-location: ${PUBLIC_KEY_LOCATION:classpath:public_key}
+
+security:
+  oauth2:
+    client:
+      enabled: false
+      url: ${OAUTH2_API_HOST:http://authentication:5000/auth/oauth/token}
+  config:
+    default-secured: false
+    enabled: true
+    endpoints:
+      unauthorized: []
+      authorized:
+        - /api/v1/test/private

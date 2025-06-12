@@ -1,0 +1,17 @@
+release:
+  namespace: sb-alpha
+
+
+app:
+  vault:
+    name: hubs/general/informationsystems/b-business/mb-template/tenants/prod/environments/digital/mb-template
+    uri: https://vault-paas.berekebank.kz/
+  env:
+    host: business.berekebank.kz
+  ingress:
+    ssl:
+      enabled: false
+    cors:
+      enabled: false
+    replicas:
+      controller: 2

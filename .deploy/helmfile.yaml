@@ -1,0 +1,143 @@
+repositories:
+  - name: nexus
+    url: https://nexus.sberbank.kz/repository/helm-bank/
+
+environments:
+  sb-alpha:
+    values:
+      - common.yaml
+      - sb-alpha.yaml
+  digital:
+    values:
+      - common.yaml
+      - digital.yaml
+---
+releases:
+  - name: {{ .Values.app.name.controller }}
+    namespace: {{ .Values.release.namespace }}
+    chart: {{ .Values.release.chart }}
+    version: {{ .Values.release.version }}
+    installed: true
+    atomic: true
+    values:
+      - app:
+          self: http://{{ .Values.app.name.controller }}:{{ .Values.app.service.container }}/{{ .Values.app.contextPath }}
+          name: {{ .Values.app.name.controller }}
+          group: {{ .Values.app.name.controller }}
+          labels:
+            app: {{ .Values.app.name.controller }}
+            release: {{ .Values.app.name.controller }}
+            context: {{ .Values.app.contextPath }}
+          container:
+            type: Deployment
+            replicas: {{ .Values.app.replicas.controller }}
+            image: nexus.sberbank.kz/repository/docker-gateway/b-business/mb-template-controller:{{ env "IMAGE_TAG" | default "latest" }}
+            port: {{ .Values.app.ports.container }}
+            annotations:
+              reloader.stakater.com/auto: "true"
+            envForm:
+              - configMapRef:
+                  name: "{{ .Values.app.name.controller }}-configmap"
+                  optional: true
+              - secretRef:
+                  name: vault-token
+            envConfigMap:
+              TZ: "{{ .Values.app.tz }}"
+              PUBLIC_KEY_LOCATION: 'file:/jwt/public_key'
+              SERVER_PORT: "{{ .Values.app.ports.container }}"
+              MANAGEMENT_SERVER_PORT: "{{ .Values.app.ports.management }}"
+              VAULT_APP: {{ .Values.app.vault.name }}
+              VAULT_URI: {{ .Values.app.vault.uri }}
+              DATASOURCE_MAXIMUM_POOL_SIZE: "{{ .Values.app.db.pool_size }}"
+            probes:
+              enabled: true
+              livenessProbe:
+                failureThreshold: 60
+                initialDelaySeconds: 60
+                periodSeconds: 30
+                successThreshold: 1
+                httpGet:
+                  path: /actuator/health/liveness
+                  port: {{ .Values.app.ports.management }}
+                timeoutSeconds: 3
+              readinessProbe:
+                failureThreshold: 3
+                initialDelaySeconds: 60
+                periodSeconds: 60
+                successThreshold: 1
+                httpGet:
+                  path: /actuator/health/readiness
+                  port: {{ .Values.app.ports.management }}
+                timeoutSeconds: 3
+            resources:
+              limits:
+                memory: 1Gi
+              requests:
+                memory: 512Mi
+            volumeMounts:
+              - name: heap-dumps
+                mountPath: /tmp/dump
+                readOnly: true
+              - name: jwt
+                mountPath: /jwt
+                readOnly: true
+          volumes:
+            - name: jwt
+              secret:
+                secretName: public-key-file
+            - name: heap-dumps
+              emptyDir: {}
+          service:
+            labels:
+              app: {{ .Values.app.name.controller }}
+              application: {{ .Values.app.name.controller }}
+              release: {{ .Values.app.name.controller }}
+            selector:
+              app: {{ .Values.app.name.controller }}
+              release: {{ .Values.app.name.controller }}
+            ports:
+              - name: http
+                port: {{ .Values.app.service.container }}
+                protocol: TCP
+                targetPort: {{ .Values.app.ports.container }}
+              - name: management
+                port: {{ .Values.app.service.management }}
+                protocol: TCP
+                targetPort: {{ .Values.app.ports.management }}
+          monitor:
+            port: management
+            labels:
+              app: {{ .Values.app.name.controller }}
+              release: {{ .Values.app.name.controller }}
+          ingress:
+            enabled: true
+            cors:
+              enabled: {{ .Values.app.ingress.cors.enabled }}
+            ssl:
+              enabled: {{ .Values.app.ingress.ssl.enabled }}
+            annotations:
+              kubernetes.io/ingress.class: nginx
+              nginx.ingress.kubernetes.io/client-body-buffer-size: 300m
+              nginx.ingress.kubernetes.io/connection-proxy-header: keep-alive
+              nginx.ingress.kubernetes.io/proxy-body-size: 300m
+              nginx.ingress.kubernetes.io/proxy-buffer-size: 300m
+              nginx.ingress.kubernetes.io/proxy-buffering: "off"
+              nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+              nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+              nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+              nginx.ingress.kubernetes.io/use-proxy-protocol: "True"
+            tls:
+              - hosts:
+                  -  {{ .Values.app.env.host }}
+                secretName: ssl-cert-business
+            rules:
+              - host: {{ .Values.app.env.host }}
+                http:
+                  paths:
+                    - backend:
+                        service:
+                          name: {{ .Values.app.name.controller }}
+                          port:
+                            number: {{ .Values.app.service.container }}
+                      path: /{{ .Values.app.contextPath }}
+                      pathType: Prefix

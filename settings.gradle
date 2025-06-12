@@ -1,0 +1,42 @@
+pluginManagement {
+    ext {
+        nexus = [
+          user: System.getenv("NEXUS_CREDS_USR") ?: 'user',
+          pass: System.getenv("NEXUS_CREDS_PSW") ?: 'pass'
+        ]
+    }
+    repositories {
+        maven {
+            url "https://nexus.sberbank.kz/repository/maven-public"
+            credentials {
+                username nexus.user
+                password nexus.pass
+            }
+        }
+    }
+}
+
+ext {
+    nexus = [
+      user: System.getenv("NEXUS_CREDS_USR") ?: 'user',
+      pass: System.getenv("NEXUS_CREDS_PSW") ?: 'pass',
+    ]
+    springDoc='2.1.0'
+}
+
+dependencyResolutionManagement {
+    repositories {
+        mavenLocal()
+        maven {
+            url "https://nexus.sberbank.kz/repository/maven-public"
+            credentials {
+                username = nexus.user
+                password = nexus.pass
+            }
+        }
+    }
+}
+
+rootProject.name = 'bereke-deepmind-backend'
+
+include 'controller'

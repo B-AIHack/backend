@@ -1,0 +1,22 @@
+version: '2.2'
+services:
+
+  postgres:
+    image: nexus.sberbank.kz:5001/library/postgres
+    restart: always
+    environment:
+      POSTGRES_DB: bereke_deepmind
+      POSTGRES_PASSWORD: bereke_deepmind
+      POSTGRES_USER: bereke_deepmind
+    ports:
+      - 5432:5432
+
+  backend:
+    image: nexus.sberbank.kz:5001/b-business/bereke-deepmind-backend:qEkXyECw
+    restart: always
+    environment:
+      DATASOURCE_URL: jdbc:postgresql://postgres:5432/bereke_deepmind
+      DATASOURCE_USER: bereke_deepmind
+      DATASOURCE_PASSWORD: bereke_deepmind
+    ports:
+      - 8090:8090

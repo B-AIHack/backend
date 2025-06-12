@@ -1,0 +1,13 @@
+release:
+  namespace: sb-alpha
+
+
+app:
+  vault:
+    name: hubs/general/informationsystems/b-business/mb-template/tenants/test/environments/sb-alpha/mb-template
+    uri: https://vault-test.berekebank.kz/
+  env:
+    host: alpha.business-t.berekebank.kz
+  ingress:
+    ssl:
+      enabled: true

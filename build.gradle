@@ -1,0 +1,16 @@
+plugins {
+    id 'java'
+    id 'jacoco'
+    alias(libs.plugins.jib)
+}
+
+apply plugin: 'java'
+apply plugin: 'jacoco'
+
+java {
+    group = 'kz.berekebank'
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.named("jib").configure { setEnabled(false) }

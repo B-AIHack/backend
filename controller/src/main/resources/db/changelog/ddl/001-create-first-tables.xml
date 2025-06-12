@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="create application" author="anukenov">
+
+        <createTable tableName="application">
+
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+
+            <column name="contract_number" type="varchar(500)"/>
+            <column name="status" type="varchar(300)"/>
+
+            <column name="created_at" type="timestamp without timezone"/>
+            <column name="deleted" type="boolean" defaultValue="false">
+                <constraints nullable="false"/>
+            </column>
+
+        </createTable>
+
+    </changeSet>
+
+    <changeSet id="create uploaded_file" author="anukenov">
+
+        <createTable tableName="uploaded_file">
+
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+
+            <column name="filename" type="varchar(500)"/>
+            <column name="content_type" type="varchar(300)"/>
+            <column name="data" type="bytea"/>
+            <column name="application_id" type="bigint">
+                <constraints referencedTableName="application" referencedColumnNames="id" foreignKeyName="kGfU3CG5I5n19qr6_fk"/>
+            </column>
+
+            <column name="deleted" type="boolean" defaultValue="false">
+                <constraints nullable="false"/>
+            </column>
+
+        </createTable>
+
+    </changeSet>
+
+</databaseChangeLog>
