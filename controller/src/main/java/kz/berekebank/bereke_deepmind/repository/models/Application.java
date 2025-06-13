@@ -43,9 +43,32 @@ public class Application {
   @JoinColumn(name = "application_id")
   private List<UploadedFile> files;
 
+  private String contractDate;
+
+  private String buyer;
+
+  private String seller;
+
+  private String operationType;
+
+  private String contractAmount;
+
+  private String currency;
+
+  private String repatriationTerm;
+
+  private String counterpartyName;
+
+  private String counterpartyCountry;
+
+  private String counterpartyBank;
+
+  private String buyerInn;
+
+  private String sellerInn;
+
   private LocalDateTime createdAt;
 
   private boolean deleted;
-
 
 }
