@@ -89,6 +89,7 @@ logging:
 logger:
   decorator:
     type: ${LOG_TYPE:console}
+    kz.berekebank.bereke_deepmind.feign: DEBUG
 
 security:
   oauth2:

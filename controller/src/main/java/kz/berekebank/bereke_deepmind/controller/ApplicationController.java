@@ -39,7 +39,7 @@ public class ApplicationController {
     return applicationService.update(id, toUpdate);
   }
 
-  @PostMapping("/{id}")
+  @PostMapping("/process/{id}")
   public void process(@PathVariable("id") Long id,
                       @RequestBody ProcessDto processDto) {
     applicationService.process(id, processDto);

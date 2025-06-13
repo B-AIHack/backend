@@ -22,15 +22,26 @@ import kz.berekebank.bereke_deepmind.repository.specification.ApplicationSpecifi
 import kz.berekebank.bereke_deepmind.service.ApplicationService;
 import kz.berekebank.bereke_deepmind.util.multipart.CustomMultipartFile;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -46,6 +57,8 @@ public class ApplicationServiceImpl implements ApplicationService {
   private final PersonsRepository      personsRepository;
 
   private final PythonClient pythonClient;
+
+  private final RestTemplate restTemplate;
 
   @Override
   @Transactional
@@ -187,19 +200,29 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     final List<OwnerResponse> owners = pythonClient.findOwners(application.getSellerInn());
 
+    if (CollectionUtils.isEmpty(owners)) {
+      return;
+    }
+
+    boolean denied = false;
     for (final OwnerResponse owner : owners) {
 
       final boolean contains = personsRepository.contains(owner.fio());
 
       if (contains) {
-        application.setStatus(ApplicationStatus.DENIED);
-        applicationRepository.save(application);
+        denied = true;
         continue;
-      } else {
-        application.setStatus(ApplicationStatus.APPROVED);
-        applicationRepository.save(application);
       }
 
+    }
+
+    if (denied) {
+      application.setStatus(ApplicationStatus.DENIED);
+      applicationRepository.save(application);
+    } else {
+
+      application.setStatus(ApplicationStatus.APPROVED);
+      applicationRepository.save(application);
     }
 
   }
@@ -217,7 +240,9 @@ public class ApplicationServiceImpl implements ApplicationService {
       final CustomMultipartFile multipartFile = new CustomMultipartFile(file.getFilename(), file.getFilename(),
                                                                         file.getContentType(), file.getData());
 
-      final ProcessResponse process = pythonClient.process(multipartFile);
+      final ProcessResponse process = process(multipartFile);
+
+//      final ProcessResponse process = pythonClient.process(multipartFile);
 
       if (process == null || process.error() != null || process.result() == null) {
         break;
@@ -269,6 +294,42 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     }
 
+  }
+
+  @Value("${integration.python.host}")
+  private String pythonUrl;
+
+  @SneakyThrows
+  private ProcessResponse process(CustomMultipartFile multipartFile) {
+
+// Обёртка над byte[] с указанием имени файла
+    ByteArrayResource fileResource = new ByteArrayResource(multipartFile.getBytes()) {
+      @Override
+      public String getFilename() {
+        return multipartFile.getOriginalFilename();
+      }
+    };
+
+    HttpHeaders filePartHeaders = new HttpHeaders();
+    filePartHeaders.setContentType(MediaType.APPLICATION_PDF);
+    HttpEntity<Resource> fileEntity = new HttpEntity<>(fileResource, filePartHeaders);
+
+// Собираем multipart body
+    MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+    body.add("file", fileEntity);
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+    HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
+
+    ResponseEntity<ProcessResponse> response = restTemplate.postForEntity(
+      pythonUrl + "/process/",
+      request,
+      ProcessResponse.class
+    );
+
+    return response.getBody();
   }
 
 }
