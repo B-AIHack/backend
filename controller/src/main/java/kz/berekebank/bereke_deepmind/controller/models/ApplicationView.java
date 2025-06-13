@@ -16,6 +16,19 @@ public record ApplicationView(
 
   List<UploadFileResponse> uploadedFiles,
 
+  String contractDate,
+  String buyer,
+  String seller,
+  String operationType,
+  String contractAmount,
+  String currency,
+  String repatriationTerm,
+  String counterpartyName,
+  String counterpartyCountry,
+  String counterpartyBank,
+  String buyerInn,
+  String sellerInn,
+
   @JsonFormat(pattern = "dd.MM.yyyy HH:mm:ss")
   LocalDateTime createdAt,
   boolean deleted

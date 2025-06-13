@@ -108,4 +108,13 @@ security:
         - /api/v1/test/private
 
 integration:
+  python:
+    host: ${PYTHON_URL:https://localhost:8000}
   host: ${POSTMAN_ECHO_URL:https://postman-echo.com}
+
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 60000
+        readTimeout: 300000
