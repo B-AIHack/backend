@@ -66,19 +66,19 @@
 
     </changeSet>
 
-    <changeSet id="create persons" author="anukenov">
+<!--    <changeSet id="create persons" author="anukenov">-->
 
-        <createTable tableName="persons">
+<!--        <createTable tableName="persons">-->
 
-            <column name="id" type="bigint" autoIncrement="true">
-                <constraints primaryKey="true"/>
-            </column>
+<!--            <column name="id" type="bigint" autoIncrement="true">-->
+<!--                <constraints primaryKey="true"/>-->
+<!--            </column>-->
 
-            <column name="full_name" type="text"/>
+<!--            <column name="full_name" type="text"/>-->
 
-        </createTable>
+<!--        </createTable>-->
 
-    </changeSet>
+<!--    </changeSet>-->
 
     <changeSet id="alter table uploaded_file" author="anukenov">
 
