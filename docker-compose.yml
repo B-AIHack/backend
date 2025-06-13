@@ -10,10 +10,14 @@ services:
       POSTGRES_USER: bereke_deepmind
     ports:
       - 5432:5432
+    volumes:
+      - ~/volumes/bereke_deepmind/pg-data:/var/lib/postgresql/data
 
   backend:
     image: nexus.sberbank.kz:5001/b-business/bereke-deepmind-backend:qEkXyECw
     restart: always
+    depends_on:
+      - postgres
     environment:
       DATASOURCE_URL: jdbc:postgresql://postgres:5432/bereke_deepmind
       DATASOURCE_USER: bereke_deepmind
