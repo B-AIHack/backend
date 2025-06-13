@@ -6,6 +6,7 @@ import kz.berekebank.bereke_deepmind.controller.models.ApplicationToCreate;
 import kz.berekebank.bereke_deepmind.controller.models.ApplicationToUpdate;
 import kz.berekebank.bereke_deepmind.controller.models.ApplicationView;
 import kz.berekebank.bereke_deepmind.controller.models.PageableResponse;
+import kz.berekebank.bereke_deepmind.controller.models.ProcessDto;
 import kz.berekebank.bereke_deepmind.service.ApplicationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +37,12 @@ public class ApplicationController {
   public Long update(@PathVariable("id") Long id,
                      @RequestBody ApplicationToUpdate toUpdate) {
     return applicationService.update(id, toUpdate);
+  }
+
+  @PostMapping("/{id}")
+  public void process(@PathVariable("id") Long id,
+                      @RequestBody ProcessDto processDto) {
+    applicationService.process(id, processDto);
   }
 
   @GetMapping("/{id}")

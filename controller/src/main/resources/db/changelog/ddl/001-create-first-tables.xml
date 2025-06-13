@@ -27,22 +27,18 @@
     <changeSet id="alter application add bin" author="anukenov">
 
         <addColumn tableName="application">
-            <column name="contractDate" type="varchar(500)"/>
+            <column name="contract_date" type="varchar(500)"/>
             <column name="buyer" type="varchar(500)"/>
             <column name="seller" type="varchar(500)"/>
-            <column name="operationType" type="varchar(500)"/>
-            <column name="contractAmount" type="varchar(500)"/>
+            <column name="operation_type" type="varchar(500)"/>
+            <column name="contract_amount" type="varchar(500)"/>
             <column name="currency" type="varchar(500)"/>
-            <column name="repatriationTerm" type="varchar(500)"/>
-            <column name="counterpartyName" type="text"/>
-            <column name="counterpartyCountry" type="varchar(500)"/>
-            <column name="counterpartyBank" type="text"/>
-            <column name="buyerInn" type="varchar(500)"/>
-            <column name="sellerInn" type="varchar(500)"/>
-        </addColumn>
-
-        <addColumn tableName="uploaded_file">
-            <column name="checked" type="boolean" defaultValue="false"/>
+            <column name="repatriation_term" type="varchar(500)"/>
+            <column name="counterparty_name" type="text"/>
+            <column name="counterparty_country" type="varchar(500)"/>
+            <column name="counterparty_bank" type="text"/>
+            <column name="buyer_inn" type="varchar(500)"/>
+            <column name="seller_inn" type="varchar(500)"/>
         </addColumn>
 
     </changeSet>
@@ -67,6 +63,28 @@
             </column>
 
         </createTable>
+
+    </changeSet>
+
+    <changeSet id="create persons" author="anukenov">
+
+        <createTable tableName="persons">
+
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+
+            <column name="full_name" type="text"/>
+
+        </createTable>
+
+    </changeSet>
+
+    <changeSet id="alter table uploaded_file" author="anukenov">
+
+        <addColumn tableName="uploaded_file">
+            <column name="checked" type="boolean" defaultValue="false"/>
+        </addColumn>
 
     </changeSet>
 

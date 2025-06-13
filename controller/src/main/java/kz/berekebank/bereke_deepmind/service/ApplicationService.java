@@ -6,6 +6,7 @@ import kz.berekebank.bereke_deepmind.controller.models.ApplicationToCreate;
 import kz.berekebank.bereke_deepmind.controller.models.ApplicationToUpdate;
 import kz.berekebank.bereke_deepmind.controller.models.ApplicationView;
 import kz.berekebank.bereke_deepmind.controller.models.PageableResponse;
+import kz.berekebank.bereke_deepmind.controller.models.ProcessDto;
 import org.springframework.data.domain.Pageable;
 
 public interface ApplicationService {
@@ -17,5 +18,7 @@ public interface ApplicationService {
   ApplicationView loadView(Long id);
 
   PageableResponse<ApplicationRecord> loadTable(ApplicationFilter applicationFilter, Pageable pageable);
+
+  void process(Long id, ProcessDto processDto);
 
 }

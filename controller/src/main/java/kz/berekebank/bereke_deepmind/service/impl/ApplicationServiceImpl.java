@@ -6,6 +6,7 @@ import kz.berekebank.bereke_deepmind.controller.models.ApplicationToCreate;
 import kz.berekebank.bereke_deepmind.controller.models.ApplicationToUpdate;
 import kz.berekebank.bereke_deepmind.controller.models.ApplicationView;
 import kz.berekebank.bereke_deepmind.controller.models.PageableResponse;
+import kz.berekebank.bereke_deepmind.controller.models.ProcessDto;
 import kz.berekebank.bereke_deepmind.controller.models.UploadFileResponse;
 import kz.berekebank.bereke_deepmind.feign.PythonClient;
 import kz.berekebank.bereke_deepmind.feign.models.python_service.OwnerResponse;
@@ -27,7 +28,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -127,6 +127,20 @@ public class ApplicationServiceImpl implements ApplicationService {
 
   }
 
+  @Override
+  @Transactional
+  public void process(Long id, ProcessDto processDto) {
+
+    final Application application = findApplication(id);
+
+    if (processDto.process()) {
+      process(application);
+    } else if (processDto.findOwners()) {
+      findOwners(application);
+    }
+
+  }
+
   private ApplicationRecord mapToRecord(Application application) {
     return ApplicationRecord.builder()
                             .id(application.getId())
@@ -169,101 +183,89 @@ public class ApplicationServiceImpl implements ApplicationService {
     return applicationRepository.findById(id).orElseThrow(() -> new RuntimeException("NO_APPLICATION_WITH_ID"));
   }
 
-  @Transactional
-  @Scheduled(fixedDelay = 60000)
-  public void scheduleCheckOwners() {
+  public void findOwners(Application application) {
 
-    for (final Application application : applicationRepository.findAllProcessingAndBinNotNull()) {
+    final List<OwnerResponse> owners = pythonClient.findOwners(application.getSellerInn());
 
-      final List<OwnerResponse> owners = pythonClient.findOwners(application.getSellerInn());
+    for (final OwnerResponse owner : owners) {
 
-      for (final OwnerResponse owner : owners) {
+      final boolean contains = personsRepository.contains(owner.fio());
 
-        final boolean contains = personsRepository.contains(owner.fio());
-
-        if (contains) {
-          application.setStatus(ApplicationStatus.DENIED);
-          applicationRepository.save(application);
-          continue;
-        } else {
-          application.setStatus(ApplicationStatus.APPROVED);
-          applicationRepository.save(application);
-        }
-
+      if (contains) {
+        application.setStatus(ApplicationStatus.DENIED);
+        applicationRepository.save(application);
+        continue;
+      } else {
+        application.setStatus(ApplicationStatus.APPROVED);
+        applicationRepository.save(application);
       }
 
     }
 
   }
 
-  @Transactional
-  @Scheduled(fixedDelay = 60000)
-  public void scheduleSetData() {
+  public void process(Application application) {
 
-    for (final Application application : applicationRepository.findAllNewOrProcessingAndBinIsNull()) {
+    application.setStatus(ApplicationStatus.PROCESSING);
 
-      application.setStatus(ApplicationStatus.PROCESSING);
+    for (final UploadedFile file : application.getFiles()) {
 
-      for (final UploadedFile file : application.getFiles()) {
-
-        if (file.isChecked()) {
-          continue;
-        }
-
-        final CustomMultipartFile multipartFile = new CustomMultipartFile(file.getFilename(), file.getFilename(),
-                                                                          file.getContentType(), file.getData());
-
-        final ProcessResponse process = pythonClient.process(multipartFile);
-
-        if (process == null || process.error() != null || process.result() == null) {
-          break;
-        }
-
-        final ProcessResult result = process.result();
-
-        if (application.getContractDate() == null) {
-          application.setContractDate(result.contractDate());
-        }
-        if (application.getBuyer() == null) {
-          application.setBuyer(result.buyer());
-        }
-        if (application.getSeller() == null) {
-          application.setSeller(result.seller());
-        }
-        if (application.getOperationType() == null) {
-          application.setOperationType(result.operationType());
-        }
-        if (application.getContractAmount() == null) {
-          application.setContractAmount(result.contractAmount());
-        }
-        if (application.getCurrency() == null) {
-          application.setCurrency(result.currency());
-        }
-        if (application.getRepatriationTerm() == null) {
-          application.setRepatriationTerm(result.repatriationTerm());
-        }
-        if (application.getCounterpartyName() == null) {
-          application.setCounterpartyName(result.counterpartyName());
-        }
-        if (application.getCounterpartyCountry() == null) {
-          application.setCounterpartyCountry(result.counterpartyCountry());
-        }
-        if (application.getCounterpartyBank() == null) {
-          application.setCounterpartyBank(result.counterpartyBank());
-        }
-        if (application.getBuyerInn() == null) {
-          application.setBuyerInn(result.buyerInn());
-        }
-        if (application.getSellerInn() == null) {
-          application.setSellerInn(result.sellerInn());
-        }
-
-        applicationRepository.save(application);
-
-        file.setChecked(true);
-        uploadedFileRepository.save(file);
-
+      if (file.isChecked()) {
+        continue;
       }
+
+      final CustomMultipartFile multipartFile = new CustomMultipartFile(file.getFilename(), file.getFilename(),
+                                                                        file.getContentType(), file.getData());
+
+      final ProcessResponse process = pythonClient.process(multipartFile);
+
+      if (process == null || process.error() != null || process.result() == null) {
+        break;
+      }
+
+      final ProcessResult result = process.result();
+
+      if (application.getContractDate() == null) {
+        application.setContractDate(result.contractDate());
+      }
+      if (application.getBuyer() == null) {
+        application.setBuyer(result.buyer());
+      }
+      if (application.getSeller() == null) {
+        application.setSeller(result.seller());
+      }
+      if (application.getOperationType() == null) {
+        application.setOperationType(result.operationType());
+      }
+      if (application.getContractAmount() == null) {
+        application.setContractAmount(result.contractAmount());
+      }
+      if (application.getCurrency() == null) {
+        application.setCurrency(result.currency());
+      }
+      if (application.getRepatriationTerm() == null) {
+        application.setRepatriationTerm(result.repatriationTerm());
+      }
+      if (application.getCounterpartyName() == null) {
+        application.setCounterpartyName(result.counterpartyName());
+      }
+      if (application.getCounterpartyCountry() == null) {
+        application.setCounterpartyCountry(result.counterpartyCountry());
+      }
+      if (application.getCounterpartyBank() == null) {
+        application.setCounterpartyBank(result.counterpartyBank());
+      }
+      if (application.getBuyerInn() == null) {
+        application.setBuyerInn(result.buyerInn());
+      }
+      if (application.getSellerInn() == null) {
+        application.setSellerInn(result.sellerInn());
+      }
+
+      applicationRepository.save(application);
+
+      file.setChecked(true);
+      uploadedFileRepository.save(file);
 
     }
 
