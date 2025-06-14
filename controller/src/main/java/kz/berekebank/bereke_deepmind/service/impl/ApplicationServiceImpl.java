@@ -13,6 +13,7 @@ import kz.berekebank.bereke_deepmind.feign.models.python_service.OcrResult;
 import kz.berekebank.bereke_deepmind.feign.models.python_service.OwnerResponse;
 import kz.berekebank.bereke_deepmind.feign.models.python_service.ProcessResponse;
 import kz.berekebank.bereke_deepmind.feign.models.python_service.ProcessResult;
+import kz.berekebank.bereke_deepmind.feign.models.python_service.ProcessTextDto;
 import kz.berekebank.bereke_deepmind.repository.ApplicationRepository;
 import kz.berekebank.bereke_deepmind.repository.PersonsRepository;
 import kz.berekebank.bereke_deepmind.repository.UploadedFileRepository;
@@ -252,6 +253,8 @@ public class ApplicationServiceImpl implements ApplicationService {
                           .denied(application.isDenied())
                           .approved(application.isApproved())
 
+                          .validationResults(application.getValidationResults())
+
                           .createdAt(application.getCreatedAt())
                           .deleted(application.isDeleted())
                           .build();
@@ -295,69 +298,78 @@ public class ApplicationServiceImpl implements ApplicationService {
   public void process(Application application) {
 
     application.setStatus(ApplicationStatus.PROCESSING);
+//
+//    for (final UploadedFile file : application.getFiles()) {
+//
+//      if (file.isChecked()) {
+//        continue;
+//      }
 
-    for (final UploadedFile file : application.getFiles()) {
+//      final CustomMultipartFile multipartFile = new CustomMultipartFile(file.getFilename(), file.getFilename(),
+//                                                                        file.getContentType(), file.getData());
 
-      if (file.isChecked()) {
-        continue;
-      }
-
-      final CustomMultipartFile multipartFile = new CustomMultipartFile(file.getFilename(), file.getFilename(),
-                                                                        file.getContentType(), file.getData());
-
-      final ProcessResponse process = process(multipartFile);
+    final ProcessResponse process = pythonClient.process(new ProcessTextDto(application.getParsingResult()));
 
 //      final ProcessResponse process = pythonClient.process(multipartFile);
 
-      if (process == null || process.error() != null || process.result() == null) {
-        break;
-      }
-
-      final ProcessResult result = process.result();
-
-      if (application.getContractDate() == null) {
-        application.setContractDate(result.contractDate());
-      }
-      if (application.getBuyer() == null) {
-        application.setBuyer(result.buyer());
-      }
-      if (application.getSeller() == null) {
-        application.setSeller(result.seller());
-      }
-      if (application.getOperationType() == null) {
-        application.setOperationType(result.operationType());
-      }
-      if (application.getContractAmount() == null) {
-        application.setContractAmount(result.contractAmount());
-      }
-      if (application.getCurrency() == null) {
-        application.setCurrency(result.currency());
-      }
-      if (application.getRepatriationTerm() == null) {
-        application.setRepatriationTerm(result.repatriationTerm());
-      }
-      if (application.getCounterpartyName() == null) {
-        application.setCounterpartyName(result.counterpartyName());
-      }
-      if (application.getCounterpartyCountry() == null) {
-        application.setCounterpartyCountry(result.counterpartyCountry());
-      }
-      if (application.getCounterpartyBank() == null) {
-        application.setCounterpartyBank(result.counterpartyBank());
-      }
-      if (application.getBuyerInn() == null) {
-        application.setBuyerInn(result.buyerInn());
-      }
-      if (application.getSellerInn() == null) {
-        application.setSellerInn(result.sellerInn());
-      }
-
-      applicationRepository.save(application);
-
-      file.setChecked(true);
-      uploadedFileRepository.save(file);
-
+    if (process == null || process.error() != null || process.result() == null) {
+      return;
     }
+
+    final ProcessResult result = process.result();
+
+    if (application.getContractDate() == null) {
+      application.setContractDate(result.contractDate());
+    }
+    if (application.getBuyer() == null) {
+      application.setBuyer(result.buyer());
+    }
+    if (application.getSeller() == null) {
+      application.setSeller(result.seller());
+    }
+    if (application.getOperationType() == null) {
+      application.setOperationType(result.operationType());
+    }
+    if (application.getContractAmount() == null) {
+      application.setContractAmount(result.contractAmount());
+    }
+    if (application.getCurrency() == null) {
+      application.setCurrency(result.currency());
+    }
+    if (application.getRepatriationTerm() == null) {
+      application.setRepatriationTerm(result.repatriationTerm());
+    }
+    if (application.getCounterpartyName() == null) {
+      application.setCounterpartyName(result.counterpartyName());
+    }
+    if (application.getCounterpartyCountry() == null) {
+      application.setCounterpartyCountry(result.counterpartyCountry());
+    }
+    if (application.getCounterpartyBank() == null) {
+      application.setCounterpartyBank(result.counterpartyBank());
+    }
+    if (application.getBuyerInn() == null) {
+      application.setBuyerInn(result.buyerInn());
+    }
+    if (application.getSellerInn() == null) {
+      application.setSellerInn(result.sellerInn());
+    }
+
+    try {
+      String complianceValidationList = pythonClient.compliance(new ProcessTextDto(application.getParsingResult()));
+
+      application.setValidationResults(complianceValidationList);
+
+    } catch (Exception e) {
+      log.error("0brj3j1D :: ", e);
+    }
+
+    applicationRepository.save(application);
+
+//      file.setChecked(true);
+//      uploadedFileRepository.save(file);
+//
+//    }
 
   }
 

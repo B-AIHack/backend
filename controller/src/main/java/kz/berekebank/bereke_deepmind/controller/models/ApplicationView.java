@@ -33,6 +33,8 @@ public record ApplicationView(
   boolean denied,
   boolean approved,
 
+  String validationResults,
+
   @JsonFormat(pattern = "dd.MM.yyyy HH:mm:ss")
   LocalDateTime createdAt,
   boolean deleted

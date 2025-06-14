@@ -43,6 +43,8 @@ public class Application {
   @JoinColumn(name = "application_id")
   private List<UploadedFile> files;
 
+  private String validationResults;
+
   private String contractDate;
 
   private String buyer;

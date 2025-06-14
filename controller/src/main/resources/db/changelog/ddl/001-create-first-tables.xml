@@ -107,4 +107,12 @@
 
     </changeSet>
 
+    <changeSet id="alter table application v4" author="anukenov">
+
+        <addColumn tableName="application">
+            <column name="validation_results" type="text"/>
+        </addColumn>
+
+    </changeSet>
+
 </databaseChangeLog>
