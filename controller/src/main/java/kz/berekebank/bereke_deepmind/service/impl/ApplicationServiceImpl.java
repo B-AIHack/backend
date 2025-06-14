@@ -26,6 +26,7 @@ import kz.berekebank.bereke_deepmind.util.multipart.CustomMultipartFile;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -47,6 +48,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -360,7 +362,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
       application.setValidationResults(complianceValidationList);
 
-      if ("[]".equals(complianceValidationList) || complianceValidationList == null) {
+      if ("[]".equals(complianceValidationList) || Strings.isBlank(complianceValidationList)) {
         application.setApproved(true);
       }
 
