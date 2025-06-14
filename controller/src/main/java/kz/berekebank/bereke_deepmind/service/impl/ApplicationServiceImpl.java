@@ -287,10 +287,12 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     if (denied) {
+      application.setStatus(ApplicationStatus.FINISHED);
       application.setDenied(true);
       applicationRepository.save(application);
     } else {
 
+      application.setStatus(ApplicationStatus.FINISHED);
       application.setApproved(true);
       applicationRepository.save(application);
     }
@@ -364,6 +366,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
       if ("[]".equals(complianceValidationList) || Strings.isBlank(complianceValidationList)) {
         application.setApproved(true);
+        application.setStatus(ApplicationStatus.FINISHED);
       }
 
     } catch (Exception e) {
