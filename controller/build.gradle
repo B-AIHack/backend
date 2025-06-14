@@ -148,7 +148,7 @@ jib {
         image = 'nexus.sberbank.kz/repository/docker-gateway/bank/eclipse-temurin:21.0.4_7-jre-alpine'
     }
     to {
-        image = "nexus.sberbank.kz:5002/b-business/bereke-deepmind-backend:jBQ1uUAp"
+        image = "nexus.sberbank.kz:5002/b-business/bereke-deepmind-backend:xAZiTePq"
         auth {
             username = project.findProperty('nexusUser') ?: 'robot' as Property<String>
             password = project.findProperty('nexusPassword') ?: 'Sber-2024+' as Property<String>
