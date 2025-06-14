@@ -67,6 +67,12 @@ public class Application {
 
   private String sellerInn;
 
+  private String parsingResult;
+
+  private boolean denied;
+
+  private boolean approved;
+
   private LocalDateTime createdAt;
 
   private boolean deleted;

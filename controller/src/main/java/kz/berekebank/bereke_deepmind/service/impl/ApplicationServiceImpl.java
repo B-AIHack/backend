@@ -9,6 +9,7 @@ import kz.berekebank.bereke_deepmind.controller.models.PageableResponse;
 import kz.berekebank.bereke_deepmind.controller.models.ProcessDto;
 import kz.berekebank.bereke_deepmind.controller.models.UploadFileResponse;
 import kz.berekebank.bereke_deepmind.feign.PythonClient;
+import kz.berekebank.bereke_deepmind.feign.models.python_service.OcrResult;
 import kz.berekebank.bereke_deepmind.feign.models.python_service.OwnerResponse;
 import kz.berekebank.bereke_deepmind.feign.models.python_service.ProcessResponse;
 import kz.berekebank.bereke_deepmind.feign.models.python_service.ProcessResult;
@@ -36,6 +37,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -78,7 +80,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     List<UploadedFile> uploadedFileIds = loadUploadedFiles(toCreate.uploadedFileIds());
 
     Application application = Application.builder()
-                                         .status(ApplicationStatus.NEW)
+                                         .status(ApplicationStatus.PARSING)
                                          .contractNumber(toCreate.contractNumber())
                                          .files(uploadedFileIds)
                                          .createdAt(LocalDateTime.now())
@@ -87,6 +89,65 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     return applicationRepository.save(application).getId();
 
+  }
+
+  @Transactional
+  @Scheduled(fixedDelay = 20000)
+  public void parse() {
+
+    for (final Application application : applicationRepository.findAllByStatus(ApplicationStatus.PARSING)) {
+
+      final OcrResult parse = parse(application);
+
+      if (parse == null || parse.result() == null) {
+        continue;
+      }
+
+      application.setParsingResult(parse.result());
+      application.setStatus(ApplicationStatus.NEW);
+
+      applicationRepository.save(application);
+
+    }
+
+  }
+
+  private OcrResult parse(Application application) {
+
+    final UploadedFile uploadedFile = application.getFiles().stream().findFirst().orElse(null);
+
+    if (uploadedFile == null) {
+      return null;
+    }
+
+// Обёртка над byte[] с указанием имени файла
+    ByteArrayResource fileResource = new ByteArrayResource(uploadedFile.getData()) {
+      @Override
+      public String getFilename() {
+        return uploadedFile.getFilename();
+      }
+    };
+
+    HttpHeaders filePartHeaders = new HttpHeaders();
+    filePartHeaders.setContentType(MediaType.APPLICATION_PDF);
+    HttpEntity<Resource> fileEntity = new HttpEntity<>(fileResource, filePartHeaders);
+
+// Собираем multipart body
+    MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+    body.add("file", fileEntity);
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+    HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
+
+    ResponseEntity<OcrResult> response = restTemplate.postForEntity(
+      pythonUrl + "/ocr/",
+      request,
+      OcrResult.class
+    );
+
+    return response.getBody();
   }
 
   private List<UploadedFile> loadUploadedFiles(List<Long> ids) {
@@ -187,6 +248,10 @@ public class ApplicationServiceImpl implements ApplicationService {
                           .buyerInn(application.getBuyerInn())
                           .sellerInn(application.getSellerInn())
 
+                          .parsingResult(application.getParsingResult())
+                          .denied(application.isDenied())
+                          .approved(application.isApproved())
+
                           .createdAt(application.getCreatedAt())
                           .deleted(application.isDeleted())
                           .build();
@@ -217,11 +282,11 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     if (denied) {
-      application.setStatus(ApplicationStatus.DENIED);
+      application.setDenied(true);
       applicationRepository.save(application);
     } else {
 
-      application.setStatus(ApplicationStatus.APPROVED);
+      application.setApproved(true);
       applicationRepository.save(application);
     }
 

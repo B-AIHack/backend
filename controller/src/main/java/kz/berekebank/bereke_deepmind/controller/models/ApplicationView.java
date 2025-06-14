@@ -29,6 +29,10 @@ public record ApplicationView(
   String buyerInn,
   String sellerInn,
 
+  String parsingResult,
+  boolean denied,
+  boolean approved,
+
   @JsonFormat(pattern = "dd.MM.yyyy HH:mm:ss")
   LocalDateTime createdAt,
   boolean deleted

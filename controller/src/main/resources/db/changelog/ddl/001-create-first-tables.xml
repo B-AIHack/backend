@@ -88,4 +88,23 @@
 
     </changeSet>
 
+    <changeSet id="alter table application v2" author="anukenov">
+
+        <addColumn tableName="application">
+            <column name="parsing_result" type="text"/>
+        </addColumn>
+
+    </changeSet>
+
+    <changeSet id="alter table application v3" author="anukenov">
+
+        <addColumn tableName="application">
+            <column name="denied" type="boolean" defaultValue="false"/>
+        </addColumn>
+        <addColumn tableName="application">
+            <column name="approved" type="boolean" defaultValue="false"/>
+        </addColumn>
+
+    </changeSet>
+
 </databaseChangeLog>
