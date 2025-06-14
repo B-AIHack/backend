@@ -360,6 +360,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 
       application.setValidationResults(complianceValidationList);
 
+      if ("[]".equals(complianceValidationList) || complianceValidationList == null) {
+        application.setApproved(true);
+      }
+
     } catch (Exception e) {
       log.error("0brj3j1D :: ", e);
     }
